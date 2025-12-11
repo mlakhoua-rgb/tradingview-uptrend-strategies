@@ -298,10 +298,10 @@ if barstate.islast and strategy.position_size > 0
 // ============================================================================
 
 alertcondition(profitTargetReached, title="💰 Profit Target Reached", 
-     message="{{ticker}} - Profit target of " + str.tostring(profitTarget) + "% reached!")
+     message="{{ticker}} - Profit target reached! Close position for gains.")
 alertcondition(downtrendDetected, title="⚠️ Downtrend Detected", 
      message="{{ticker}} - Downtrend signals detected! Consider exiting.")
 alertcondition(highPriorityExit, title="🔴 High Priority Exit Signal", 
      message="{{ticker}} - HIGH PRIORITY exit signal! Exit immediately!")
 alertcondition(trailingStopHit, title="📉 Trailing Stop Hit", 
-     message="{{ticker}} - Trailing stop hit at " + str.tostring(trailingStopPrice))
+     message="{{ticker}} - Trailing stop triggered! Exit to lock in profits.")
