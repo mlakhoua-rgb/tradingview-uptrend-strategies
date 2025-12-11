@@ -5,19 +5,10 @@ indicator("🎯 High-Probability Uptrend Scanner", overlay=false, max_labels_cou
 // INPUT PARAMETERS
 // ============================================================================
 
-// Symbol Selection
-string[] symbols = array.from(
-     "BINANCE:BTCUSDT", "BINANCE:ETHUSDT", "BINANCE:SOLUSDT", "BINANCE:BNBUSDT",
-     "TVC:GOLD", "TVC:SILVER", "AMEX:GLD", "AMEX:SLV",
-     "NASDAQ:AAPL", "NASDAQ:MSFT", "NASDAQ:GOOGL", "NASDAQ:NVDA", "NASDAQ:TSLA",
-     "AMEX:SPY", "NASDAQ:QQQ", "AMEX:DIA",
-     "NASDAQ:AVGO", "NASDAQ:META", "NASDAQ:AMZN", "NASDAQ:AMD"
-     )
-
 // Scoring Thresholds
 minScore = input.int(75, "Minimum Score for Entry", minval=0, maxval=100, 
      tooltip="Assets scoring above this threshold are considered for entry")
-topN = input.int(5, "Number of Top Assets to Display", minval=1, maxval=20)
+topN = input.int(20, "Number of Assets to Display", minval=1, maxval=20)
 
 // Indicator Parameters
 rsiLength = input.int(14, "RSI Length", minval=1)
@@ -226,7 +217,43 @@ calcScore() =>
     totalScore
 
 // ============================================================================
-// SCAN MULTIPLE SYMBOLS
+// SCAN MULTIPLE SYMBOLS - FIXED VERSION
+// ============================================================================
+
+// Define symbols as individual constants (Pine Script limitation workaround)
+s1 = request.security("BINANCE:BTCUSDT", timeframe.period, calcScore())
+s2 = request.security("BINANCE:ETHUSDT", timeframe.period, calcScore())
+s3 = request.security("BINANCE:SOLUSDT", timeframe.period, calcScore())
+s4 = request.security("BINANCE:BNBUSDT", timeframe.period, calcScore())
+s5 = request.security("TVC:GOLD", timeframe.period, calcScore())
+s6 = request.security("AMEX:GLD", timeframe.period, calcScore())
+s7 = request.security("NASDAQ:AAPL", timeframe.period, calcScore())
+s8 = request.security("NASDAQ:MSFT", timeframe.period, calcScore())
+s9 = request.security("NASDAQ:GOOGL", timeframe.period, calcScore())
+s10 = request.security("NASDAQ:NVDA", timeframe.period, calcScore())
+s11 = request.security("NASDAQ:TSLA", timeframe.period, calcScore())
+s12 = request.security("AMEX:SPY", timeframe.period, calcScore())
+s13 = request.security("NASDAQ:QQQ", timeframe.period, calcScore())
+s14 = request.security("NASDAQ:META", timeframe.period, calcScore())
+s15 = request.security("NASDAQ:AMZN", timeframe.period, calcScore())
+s16 = request.security("NASDAQ:AMD", timeframe.period, calcScore())
+s17 = request.security("BINANCE:ADAUSDT", timeframe.period, calcScore())
+s18 = request.security("BINANCE:DOGEUSDT", timeframe.period, calcScore())
+s19 = request.security("NASDAQ:AVGO", timeframe.period, calcScore())
+s20 = request.security("AMEX:DIA", timeframe.period, calcScore())
+
+// Store in arrays
+var array<string> symbolNames = array.from(
+     "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "GOLD", "GLD",
+     "AAPL", "MSFT", "GOOGL", "NVDA", "TSLA", "SPY", "QQQ",
+     "META", "AMZN", "AMD", "ADAUSDT", "DOGEUSDT", "AVGO", "DIA")
+
+var array<float> scores = array.from(
+     s1, s2, s3, s4, s5, s6, s7, s8, s9, s10,
+     s11, s12, s13, s14, s15, s16, s17, s18, s19, s20)
+
+// ============================================================================
+// DISPLAY TABLE
 // ============================================================================
 
 var table resultsTable = table.new(position.top_right, 4, 22, 
@@ -243,56 +270,42 @@ if barstate.isfirst
     table.cell(resultsTable, 3, 0, "Signal", text_color=color.white, bgcolor=color.new(color.blue, 50), 
          text_size=size.normal, text_halign=text.align_center)
 
-// Arrays to store results
-var array<string> symbolNames = array.new<string>()
-var array<float> scores = array.new<float>()
-
-// Scan all symbols
+// Sort and display
 if barstate.islast
-    array.clear(symbolNames)
-    array.clear(scores)
+    // Create temporary arrays for sorting
+    var array<float> sortedScores = array.copy(scores)
+    var array<string> sortedSymbols = array.copy(symbolNames)
     
-    for i = 0 to array.size(symbols) - 1
-        symbol = array.get(symbols, i)
-        score = request.security(symbol, timeframe.period, calcScore())
-        
-        array.push(symbolNames, symbol)
-        array.push(scores, score)
-    
-    // Sort by score (bubble sort for simplicity)
-    for i = 0 to array.size(scores) - 1
-        for j = 0 to array.size(scores) - 2 - i
-            if array.get(scores, j) < array.get(scores, j + 1)
+    // Bubble sort
+    for i = 0 to array.size(sortedScores) - 1
+        for j = 0 to array.size(sortedScores) - 2 - i
+            if array.get(sortedScores, j) < array.get(sortedScores, j + 1)
                 // Swap scores
-                tempScore = array.get(scores, j)
-                array.set(scores, j, array.get(scores, j + 1))
-                array.set(scores, j + 1, tempScore)
+                tempScore = array.get(sortedScores, j)
+                array.set(sortedScores, j, array.get(sortedScores, j + 1))
+                array.set(sortedScores, j + 1, tempScore)
                 
                 // Swap symbols
-                tempSymbol = array.get(symbolNames, j)
-                array.set(symbolNames, j, array.get(symbolNames, j + 1))
-                array.set(symbolNames, j + 1, tempSymbol)
+                tempSymbol = array.get(sortedSymbols, j)
+                array.set(sortedSymbols, j, array.get(sortedSymbols, j + 1))
+                array.set(sortedSymbols, j + 1, tempSymbol)
     
     // Display top N results
-    displayCount = math.min(topN, array.size(symbolNames))
+    displayCount = math.min(topN, array.size(sortedSymbols))
     
     for i = 0 to displayCount - 1
-        symbol = array.get(symbolNames, i)
-        score = array.get(scores, i)
+        symbol = array.get(sortedSymbols, i)
+        score = array.get(sortedScores, i)
         
         // Determine signal strength
         signal = score >= 85 ? "🔥 STRONG" : score >= minScore ? "✅ GOOD" : "⚠️ WEAK"
         scoreColor = score >= 85 ? color.new(color.lime, 30) : 
              score >= minScore ? color.new(color.yellow, 30) : color.new(color.orange, 30)
         
-        // Extract symbol name (remove exchange prefix)
-        symbolShort = str.split(symbol, ":")
-        displaySymbol = array.size(symbolShort) > 1 ? array.get(symbolShort, 1) : symbol
-        
         // Display in table
         table.cell(resultsTable, 0, i + 1, str.tostring(i + 1), 
              text_color=color.white, text_size=size.normal, text_halign=text.align_center)
-        table.cell(resultsTable, 1, i + 1, displaySymbol, 
+        table.cell(resultsTable, 1, i + 1, symbol, 
              text_color=color.white, text_size=size.normal, text_halign=text.align_left)
         table.cell(resultsTable, 2, i + 1, str.tostring(score, "#.0"), 
              text_color=color.white, bgcolor=scoreColor, text_size=size.normal, text_halign=text.align_center)
