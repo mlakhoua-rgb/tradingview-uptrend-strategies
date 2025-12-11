@@ -1,0 +1,323 @@
+//@version=5
+indicator("🎯 High-Probability Uptrend Scanner", overlay=false, max_labels_count=500)
+
+// ============================================================================
+// INPUT PARAMETERS
+// ============================================================================
+
+// Symbol Selection
+string[] symbols = array.from(
+     "BINANCE:BTCUSDT", "BINANCE:ETHUSDT", "BINANCE:SOLUSDT", "BINANCE:BNBUSDT",
+     "TVC:GOLD", "TVC:SILVER", "AMEX:GLD", "AMEX:SLV",
+     "NASDAQ:AAPL", "NASDAQ:MSFT", "NASDAQ:GOOGL", "NASDAQ:NVDA", "NASDAQ:TSLA",
+     "AMEX:SPY", "NASDAQ:QQQ", "AMEX:DIA",
+     "NASDAQ:AVGO", "NASDAQ:META", "NASDAQ:AMZN", "NASDAQ:AMD"
+     )
+
+// Scoring Thresholds
+minScore = input.int(75, "Minimum Score for Entry", minval=0, maxval=100, 
+     tooltip="Assets scoring above this threshold are considered for entry")
+topN = input.int(5, "Number of Top Assets to Display", minval=1, maxval=20)
+
+// Indicator Parameters
+rsiLength = input.int(14, "RSI Length", minval=1)
+rsiLow = input.int(40, "RSI Lower Bound", minval=0, maxval=100)
+rsiHigh = input.int(70, "RSI Upper Bound", minval=0, maxval=100)
+rsiOverbought = input.int(80, "RSI Overbought Level", minval=0, maxval=100)
+
+emaFast = input.int(50, "Fast EMA Period", minval=1)
+emaSlow = input.int(200, "Slow EMA Period", minval=1)
+adxLength = input.int(14, "ADX Length", minval=1)
+adxThreshold = input.int(25, "ADX Threshold", minval=0)
+
+macdFast = input.int(12, "MACD Fast Length", minval=1)
+macdSlow = input.int(26, "MACD Slow Length", minval=1)
+macdSignal = input.int(9, "MACD Signal Length", minval=1)
+
+stochLength = input.int(14, "Stochastic Length", minval=1)
+stochSmooth = input.int(3, "Stochastic Smooth", minval=1)
+stochOverbought = input.int(80, "Stochastic Overbought", minval=0, maxval=100)
+
+volumeMultiplier = input.float(1.3, "Volume Surge Multiplier", minval=1.0, step=0.1)
+atrLength = input.int(14, "ATR Length", minval=1)
+bbLength = input.int(20, "Bollinger Bands Length", minval=1)
+bbMult = input.float(2.0, "Bollinger Bands Multiplier", minval=0.1, step=0.1)
+
+// ============================================================================
+// SCORING FUNCTION
+// ============================================================================
+
+calcScore() =>
+    var float totalScore = 0.0
+    totalScore := 0.0
+    
+    // Calculate all indicators
+    ema50 = ta.ema(close, emaFast)
+    ema200 = ta.ema(close, emaSlow)
+    
+    // ADX Calculation
+    [diPlus, diMinus, adx] = ta.dmi(adxLength, adxLength)
+    
+    // RSI
+    rsi = ta.rsi(close, rsiLength)
+    
+    // MACD
+    [macdLine, signalLine, macdHist] = ta.macd(close, macdFast, macdSlow, macdSignal)
+    
+    // Stochastic
+    stochK = ta.stoch(close, high, low, stochLength)
+    stochD = ta.sma(stochK, stochSmooth)
+    
+    // Volume
+    vol20 = ta.sma(volume, 20)
+    vol5 = ta.sma(volume, 5)
+    
+    // On-Balance Volume
+    obv = ta.cum(math.sign(ta.change(close)) * volume)
+    obvSlope = ta.change(obv, 5)
+    
+    // ATR and Bollinger Bands
+    atr = ta.atr(atrLength)
+    atr50 = ta.sma(atr, 50)
+    [bbMiddle, bbUpper, bbLower] = ta.bb(close, bbLength, bbMult)
+    bbWidth = bbUpper - bbLower
+    bbWidthPrev = bbWidth[10]
+    
+    // Price Action
+    highest10 = ta.highest(high, 10)
+    swingLow1 = ta.lowest(low, 5)
+    swingLow2 = ta.lowest(low[5], 5)
+    swingLow3 = ta.lowest(low[10], 5)
+    
+    // ========================================================================
+    // RISK FILTERS (Disqualifiers)
+    // ========================================================================
+    
+    bool disqualified = false
+    
+    // Price below 200 EMA
+    if close < ema200
+        disqualified := true
+    
+    // RSI severely overbought
+    if rsi > rsiOverbought
+        disqualified := true
+    
+    // Very low volume
+    if volume < vol20 * 0.5
+        disqualified := true
+    
+    // Recent death cross
+    deathCross = ta.crossunder(ema50, ema200)
+    if ta.barssince(deathCross) < 20
+        disqualified := true
+    
+    // Extreme volatility
+    if atr > atr50 * 2
+        disqualified := true
+    
+    // If disqualified, return 0 score
+    if disqualified
+        totalScore := 0.0
+    else
+        // ====================================================================
+        // 1. TREND CONFIRMATION (30 points max)
+        // ====================================================================
+        
+        float trendScore = 0.0
+        
+        // 50 EMA above 200 EMA
+        if ema50 > ema200
+            trendScore += 10.0
+        
+        // Price above both EMAs
+        if close > ema50 and close > ema200
+            trendScore += 10.0
+        
+        // ADX shows strong trend
+        if adx > adxThreshold
+            trendScore += 10.0
+        
+        totalScore += trendScore
+        
+        // ====================================================================
+        // 2. MOMENTUM ANALYSIS (25 points max)
+        // ====================================================================
+        
+        float momentumScore = 0.0
+        
+        // RSI in sweet spot
+        if rsi >= rsiLow and rsi <= rsiHigh
+            momentumScore += 8.0
+        
+        // MACD bullish crossover
+        macdCross = ta.crossover(macdLine, signalLine)
+        if macdCross or (macdLine > signalLine and macdHist > macdHist[1])
+            momentumScore += 9.0
+        
+        // Stochastic bullish
+        stochCross = ta.crossover(stochK, stochD)
+        if (stochCross and stochK < stochOverbought) or (stochK > stochD and stochK < stochOverbought)
+            momentumScore += 8.0
+        
+        totalScore += momentumScore
+        
+        // ====================================================================
+        // 3. VOLUME CONFIRMATION (20 points max)
+        // ====================================================================
+        
+        float volumeScore = 0.0
+        
+        // Volume surge
+        if volume > vol20 * volumeMultiplier
+            volumeScore += 7.0
+        
+        // Volume trend up
+        if vol5 > vol20
+            volumeScore += 7.0
+        
+        // OBV trending up
+        if obvSlope > 0
+            volumeScore += 6.0
+        
+        totalScore += volumeScore
+        
+        // ====================================================================
+        // 4. PRICE ACTION PATTERNS (15 points max)
+        // ====================================================================
+        
+        float priceActionScore = 0.0
+        
+        // Higher lows
+        if swingLow1 > swingLow2 and swingLow2 > swingLow3
+            priceActionScore += 5.0
+        
+        // Breakout above 10-day high
+        if close >= highest10
+            priceActionScore += 5.0
+        
+        // Support hold at 50 EMA
+        if low <= ema50 * 1.02 and close > ema50
+            priceActionScore += 5.0
+        
+        totalScore += priceActionScore
+        
+        // ====================================================================
+        // 5. VOLATILITY & RISK (10 points max)
+        // ====================================================================
+        
+        float volatilityScore = 0.0
+        
+        // ATR increasing
+        if atr > atr[5]
+            volatilityScore += 3.0
+        
+        // Price in upper half of Bollinger Bands
+        if close > bbMiddle
+            volatilityScore += 4.0
+        
+        // Bollinger Bands expanding (squeeze release)
+        if bbWidth > bbWidthPrev
+            volatilityScore += 3.0
+        
+        totalScore += volatilityScore
+    
+    // Return total score
+    totalScore
+
+// ============================================================================
+// SCAN MULTIPLE SYMBOLS
+// ============================================================================
+
+var table resultsTable = table.new(position.top_right, 4, 22, 
+     bgcolor=color.new(color.black, 85), frame_color=color.gray, frame_width=2, border_width=1)
+
+// Initialize table headers
+if barstate.isfirst
+    table.cell(resultsTable, 0, 0, "Rank", text_color=color.white, bgcolor=color.new(color.blue, 50), 
+         text_size=size.normal, text_halign=text.align_center)
+    table.cell(resultsTable, 1, 0, "Symbol", text_color=color.white, bgcolor=color.new(color.blue, 50), 
+         text_size=size.normal, text_halign=text.align_center)
+    table.cell(resultsTable, 2, 0, "Score", text_color=color.white, bgcolor=color.new(color.blue, 50), 
+         text_size=size.normal, text_halign=text.align_center)
+    table.cell(resultsTable, 3, 0, "Signal", text_color=color.white, bgcolor=color.new(color.blue, 50), 
+         text_size=size.normal, text_halign=text.align_center)
+
+// Arrays to store results
+var array<string> symbolNames = array.new<string>()
+var array<float> scores = array.new<float>()
+
+// Scan all symbols
+if barstate.islast
+    array.clear(symbolNames)
+    array.clear(scores)
+    
+    for i = 0 to array.size(symbols) - 1
+        symbol = array.get(symbols, i)
+        score = request.security(symbol, timeframe.period, calcScore())
+        
+        array.push(symbolNames, symbol)
+        array.push(scores, score)
+    
+    // Sort by score (bubble sort for simplicity)
+    for i = 0 to array.size(scores) - 1
+        for j = 0 to array.size(scores) - 2 - i
+            if array.get(scores, j) < array.get(scores, j + 1)
+                // Swap scores
+                tempScore = array.get(scores, j)
+                array.set(scores, j, array.get(scores, j + 1))
+                array.set(scores, j + 1, tempScore)
+                
+                // Swap symbols
+                tempSymbol = array.get(symbolNames, j)
+                array.set(symbolNames, j, array.get(symbolNames, j + 1))
+                array.set(symbolNames, j + 1, tempSymbol)
+    
+    // Display top N results
+    displayCount = math.min(topN, array.size(symbolNames))
+    
+    for i = 0 to displayCount - 1
+        symbol = array.get(symbolNames, i)
+        score = array.get(scores, i)
+        
+        // Determine signal strength
+        signal = score >= 85 ? "🔥 STRONG" : score >= minScore ? "✅ GOOD" : "⚠️ WEAK"
+        scoreColor = score >= 85 ? color.new(color.lime, 30) : 
+             score >= minScore ? color.new(color.yellow, 30) : color.new(color.orange, 30)
+        
+        // Extract symbol name (remove exchange prefix)
+        symbolShort = str.split(symbol, ":")
+        displaySymbol = array.size(symbolShort) > 1 ? array.get(symbolShort, 1) : symbol
+        
+        // Display in table
+        table.cell(resultsTable, 0, i + 1, str.tostring(i + 1), 
+             text_color=color.white, text_size=size.normal, text_halign=text.align_center)
+        table.cell(resultsTable, 1, i + 1, displaySymbol, 
+             text_color=color.white, text_size=size.normal, text_halign=text.align_left)
+        table.cell(resultsTable, 2, i + 1, str.tostring(score, "#.0"), 
+             text_color=color.white, bgcolor=scoreColor, text_size=size.normal, text_halign=text.align_center)
+        table.cell(resultsTable, 3, i + 1, signal, 
+             text_color=color.white, text_size=size.small, text_halign=text.align_center)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+
+// Calculate score for current chart symbol
+currentScore = calcScore()
+strongSignal = currentScore >= 85
+goodSignal = currentScore >= minScore and currentScore < 85
+
+alertcondition(strongSignal, title="🔥 Strong Uptrend Signal", 
+     message="{{ticker}} - STRONG uptrend signal detected! Score: {{plot_0}}")
+alertcondition(goodSignal, title="✅ Good Uptrend Signal", 
+     message="{{ticker}} - Good uptrend signal detected! Score: {{plot_0}}")
+
+// Plot current symbol score for reference
+plot(currentScore, title="Current Symbol Score", color=color.new(color.blue, 0), linewidth=2)
+hline(minScore, "Min Score Threshold", color=color.yellow, linestyle=hline.style_dashed)
+hline(85, "Strong Signal Threshold", color=color.lime, linestyle=hline.style_dashed)
+
+// Background color based on score
+bgcolor(currentScore >= 85 ? color.new(color.lime, 90) : 
+     currentScore >= minScore ? color.new(color.yellow, 95) : na)
