@@ -1,4 +1,4 @@
-//@version=5
+//@version=6
 strategy("🎯 Smart Exit Manager", overlay=true, initial_capital=10000, 
      default_qty_type=strategy.percent_of_equity, default_qty_value=100, 
      commission_type=strategy.commission.percent, commission_value=0.1)
@@ -138,9 +138,11 @@ else  // Conservative
 // ============================================================================
 
 // Entry conditions (for backtesting purposes)
-bool entryCondition = ta.crossover(ema50, ema200) or 
+bool goldenCross = ta.crossover(ema50, ema200)
+bool macdCross = ta.crossover(macdLine, signalLine)
+bool entryCondition = goldenCross or 
      (close > ema50 and close > ema200 and rsi > 50 and rsi < 70 and 
-      ta.crossover(macdLine, signalLine) and volume > vol20 * 1.2)
+      macdCross and volume > vol20 * 1.2)
 
 if entryCondition and strategy.position_size == 0
     strategy.entry("Long", strategy.long)

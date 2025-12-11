@@ -1,4 +1,4 @@
-//@version=5
+//@version=6
 indicator("🎯 High-Probability Uptrend Scanner", overlay=false, max_labels_count=500)
 
 // ============================================================================
@@ -141,14 +141,12 @@ calcScore() =>
         if rsi >= rsiLow and rsi <= rsiHigh
             momentumScore += 8.0
         
-        // MACD bullish crossover
-        macdCross = ta.crossover(macdLine, signalLine)
-        if macdCross or (macdLine > signalLine and macdHist > macdHist[1])
+        // MACD bullish crossover or rising
+        if ta.crossover(macdLine, signalLine) or (macdLine > signalLine and macdHist > macdHist[1])
             momentumScore += 9.0
         
         // Stochastic bullish
-        stochCross = ta.crossover(stochK, stochD)
-        if (stochCross and stochK < stochOverbought) or (stochK > stochD and stochK < stochOverbought)
+        if ta.crossover(stochK, stochD) and stochK < stochOverbought or (stochK > stochD and stochK < stochOverbought)
             momentumScore += 8.0
         
         totalScore += momentumScore
