@@ -1,6 +1,6 @@
 # 🎯 High-Probability Trading System for TradingView
 
-**Author**: Manus AI  
+**Author**: Manus AI & Mohamed Ben Lakhoua 
 **Created**: December 11, 2025  
 **Version**: 1.0
 
@@ -343,4 +343,4 @@ If you have questions about the strategy or need help with implementation, pleas
 
 ---
 
-**Happy Trading! 🚀**
+**Happy and Risk Assessed Trading! 🚀**
