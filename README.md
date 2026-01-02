@@ -2,20 +2,21 @@
 
 **Author**: Manus AI & Mohamed Ben Lakhoua 
 **Created**: December 11, 2025  
-**Version**: 1.0
+**Version**: 1.2
 
 ---
 
 ## 📋 Overview
 
-This repository contains two sophisticated Pine Script strategies designed to identify high-probability uptrend opportunities and manage exits intelligently. The system is built on the principle of **indicator confluence** rather than unreliable "machine learning" predictions, ensuring transparency and robustness.
+This repository contains three sophisticated Pine Script strategies designed to identify high-probability trading opportunities and manage exits intelligently. The system is built on the principle of **indicator confluence** rather than unreliable "machine learning" predictions, ensuring transparency and robustness.
 
 ### What's Included
 
 1. **Entry Scanner** (`entry_scanner.pine`) - Scans up to 40 assets and ranks them based on a 100-point scoring system
 2. **Exit Manager** (`exit_manager.pine`) - Manages trades with profit targets, stop-losses, and downtrend detection
-3. **Testing Guide** (`testing_guide.md`) - Comprehensive backtesting and validation framework
-4. **Strategy Design** (`strategy_design.md`) - Detailed technical documentation
+3. **BTC Swing Trading Strategy** (`btc_swing_trading_strategy.pine`) - 🆕 **NEW!** Dedicated Bitcoin swing trading system with dual timeframe analysis
+4. **Testing Guide** (`testing_guide.md`) - Comprehensive backtesting and validation framework
+5. **Strategy Design** (`strategy_design.md`) - Detailed technical documentation
 
 ---
 
@@ -308,6 +309,13 @@ Position Size = ($10,000 × 0.02) ÷ ($100 × 0.07) = $200 ÷ $7 = 28.5 shares
 ---
 
 ## 📝 Changelog
+
+### Version 1.2 (January 2, 2026)
+- **NEW**: BTC Swing Trading Strategy with dual timeframe analysis
+- ATR-based dynamic trailing stop
+- Risk management with compounding (5-7% per trade)
+- Comprehensive strategy documentation
+- Target: 20-25 trades/year
 
 ### Version 1.0 (December 11, 2025)
 - Initial release

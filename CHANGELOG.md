@@ -4,6 +4,37 @@ All notable changes to the TradingView Uptrend Strategies project.
 
 ---
 
+## [1.2.0] - 2026-01-02
+
+### 🚀 New Strategy Added
+- **BTC Swing Trading Strategy** - Dedicated Bitcoin swing trading system
+  - Dual timeframe analysis (1D primary + 4H confirmation)
+  - ATR-based dynamic trailing stop
+  - Risk management with compounding (5-7% per trade)
+  - Target: 20-25 trades/year
+  - 5,000 EUR starting capital
+  - Zero commission model
+
+### 📄 New Files
+- `btc_swing_trading_strategy.pine` - Complete Pine Script implementation
+- `BTC_SWING_STRATEGY.md` - Comprehensive strategy documentation
+
+### 🎯 Strategy Features
+- **Entry Logic**: 200 EMA trend filter, ADX > 25, RSI pullback (40-70), volume confirmation, 4H confirmation
+- **Exit Logic**: ATR-based trailing stop (2x ATR), 3-day minimum hold period
+- **Dashboard**: Real-time metrics including P&L, position status, trend indicators
+- **Alerts**: Pre-configured entry and exit alerts
+- **Visualization**: EMA plots, trailing stop line, entry/exit markers, trend background
+
+### 🔧 Technical Details
+- Pine Script v5
+- Multi-timeframe analysis using `request.security()`
+- Dynamic position sizing based on equity
+- Compounding enabled
+- Strategy tester compatible
+
+---
+
 ## [1.1.0] - 2025-12-11
 
 ### ✅ Fixed
@@ -121,4 +152,4 @@ For issues or questions:
 
 ---
 
-**Last Updated**: December 11, 2025
+**Last Updated**: January 2, 2026
