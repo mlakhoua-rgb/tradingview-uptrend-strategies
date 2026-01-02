@@ -96,10 +96,15 @@ atr = ta.atr(atrLength)
 // 4H TIMEFRAME CONFIRMATION
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Helper function to get ADX for request.security()
+getADX() =>
+    [diPlus_temp, diMinus_temp, adx_temp] = ta.dmi(adxLength, adxLength)
+    adx_temp
+
 // Request 4H data
 ema200_4h = request.security(syminfo.tickerid, "240", ta.ema(close, emaLength))
 rsi_4h = request.security(syminfo.tickerid, "240", ta.rsi(close, rsiLength))
-adx_4h = request.security(syminfo.tickerid, "240", ta.dmi(adxLength, adxLength)[2])
+adx_4h = request.security(syminfo.tickerid, "240", getADX())
 
 // 4H Confirmation Conditions
 trendUp_4h = close > ema200_4h
